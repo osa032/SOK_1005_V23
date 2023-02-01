@@ -1,0 +1,97 @@
+---
+title: "032_SOK1005_V23"
+format: pdf
+editor: visual
+---
+
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(ggplot2)
+library(readr)
+library(zoo)
+library(data.table)
+library(reshape2)
+```
+
+```{r}
+# import the txt files
+lower_Trop <- read_table("http://vortex.nsstc.uah.edu/data/msu/v6.0/tlt/uahncdc_lt_6.0.txt")
+mid_Trop <- read_table("http://vortex.nsstc.uah.edu/data/msu/v6.0/tmt/uahncdc_mt_6.0.txt")
+trop <- read_table("http://vortex.nsstc.uah.edu/data/msu/v6.0/ttp/uahncdc_tp_6.0.txt")
+low_Strat <- read_table("http://vortex.nsstc.uah.edu/data/msu/v6.0/tls/uahncdc_ls_6.0.txt")
+```
+
+```{r}
+# extract the mean for each year
+lower_Trop <- 
+  lower_Trop %>% 
+  filter(Year %in% c(1978:2022)) %>% 
+  group_by(Year) %>% 
+  summarize("Lower Troposphere" = mean(as.numeric(Globe))) %>% 
+  ungroup()
+
+mid_Trop <- 
+  mid_Trop %>% 
+  filter(Year %in% c(1978:2022)) %>% 
+  group_by(Year) %>% 
+  summarize("Mid Troposphere" = mean(as.numeric(Globe))) %>% 
+  ungroup()
+
+trop <- 
+  trop %>% 
+  filter(Year %in% c(1978:2022)) %>% 
+  group_by(Year) %>% 
+  summarize("Tropopause" = mean(as.numeric(Globe))) %>% 
+  ungroup()
+
+low_Strat <- 
+  low_Strat %>% 
+  filter(Year %in% c(1978:2022)) %>% 
+  group_by(Year) %>% 
+  summarize("Lower Stratosphere" = mean(as.numeric(Globe))) %>% 
+  ungroup()
+```
+
+```{r}
+# aggregate into one list
+rolling_mean <- 
+  
+  list(lower_Trop, 
+       mid_Trop, 
+       trop, 
+       low_Strat) %>% 
+  
+  reduce(full_join, 
+         by = "Year")
+
+# add column for average across averages pr year
+rolling_mean$Average <- 
+  rowMeans(rolling_mean[, c(2:5)])
+```
+
+```{r}
+
+#plot average global temperature of the different parts of the atmosphere
+
+# make it readable for ggplot to get all variables & filter from 1980
+rolling_mean_m <- rolling_mean %>% 
+  select(!"Average") %>% 
+  filter(Year>=1980) %>% 
+  melt(id.var="Year")
+
+# plot the different atmpspheric layers in individual plots with the average in all
+plot <- 
+  ggplot()+
+  geom_line(data=rolling_mean_m, aes(x=as.numeric(Year), y=value, group=1, color="Yearly Average"))+
+  geom_line(data=rolling_mean, aes(x=as.numeric(Year), y=Average, group=2, color="Average across all"))+
+  facet_wrap(~variable, ncol=1)+
+  ggtitle("Departure From Avg Temperature in Athmosphere")+
+  ylab("Departure From Avg. (deg C)")+
+  xlab("Year")+
+  scale_color_manual(values=c("#999999", "#56B4E9"), name="")+
+  theme_minimal()+
+  theme(legend.position="bottom")
+
+plot
+```
