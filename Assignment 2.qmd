@@ -1,0 +1,97 @@
+---
+title: "Assignment 2"
+format: html
+editor: visual
+---
+
+## **Assignment - 2**
+
+**Scraping an html table from a web page**
+
+#### Task 1
+
+```{r, echo=f}
+#Import libararies
+library(tidyverse)
+library(rvest)  # for web scraping 
+library(janitor) # for data cleaning 
+library(lubridate) #to work with date
+library(quantmod) 
+```
+
+```{r}
+# Import data from html
+url <- "https://www.motor.no/aktuelt/motors-store-vintertest-av-rekkevidde-pa-elbiler/217132"
+
+df <- url %>% read_html() %>% 
+  html_element("table") %>%  
+  html_table( header=TRUE, 
+              trim=TRUE, 
+) %>% 
+  separate_wider_delim("WLTP-tall",
+                       "/",
+           names = c("WLTP", "kWh"))
+```
+
+```{r}
+#Change neessary data
+is.na(df) <- df == "x"
+df$WLTP1 <- as.numeric(gsub(" km", "",df$WLTP ))
+df$STOPP1 <- as.numeric(gsub(" km", "",df$STOPP ))
+df$Avvik1 <- gsub(" %", "", df$Avvik)
+df$kWh1 <- gsub(" kWh", "", df$kWh)
+```
+
+```{r}
+df %>% head(5)
+```
+
+```{r}
+#Create plot
+df %>% 
+  ggplot(aes(x=WLTP1, y=STOPP1))+
+  geom_point()+
+  geom_abline(color="red")+
+  scale_x_continuous(limits = c(200, 600)) +
+  scale_y_continuous(limits = c(200, 600)) +
+  theme_minimal() +
+  annotate("text", x = 250, y = 550, label = "Advertized range", color="red")+
+  annotate("text", x = 250, y = 450, label = "Actual range", color="black")+
+  labs(
+    x = "WLPT(km)",
+    y = "Stop(km)",
+    title = "Devitaion from advertized range",
+    subtitle = "How range in electric cars in winter conditions deviated from advertized.")+
+  theme_minimal()
+  
+```
+
+#### Task 2
+
+```{r}
+#check slope
+lm(STOPP1 ~ WLTP1, data = df)
+```
+
+As we can see the regression line at x = -26.6450, and increase by 0.8671
+
+```{r}
+#create 2nd plot
+df %>% 
+  ggplot(aes(x=WLTP1, y=STOPP1))+
+  geom_point()+
+  geom_abline(color="red")+
+  scale_x_continuous(limits = c(200, 600)) +
+  scale_y_continuous(limits = c(200, 600)) +
+  geom_smooth(method = lm) +
+  theme_minimal() +
+  annotate("text", x = 250, y = 570, label = "Advertized range", color="red")+
+  annotate("text", x = 250, y = 500, label = "Actual range", color="black")+
+  annotate("text", x = 250, y = 450, label = "Average of actual range", color="blue")+
+  labs(
+    x = "WLPT(km)",
+    y = "Stop(km)",
+    title = "Devitaion from advertized range",
+    subtitle = "How range in electric cars in winter conditions deviated from advertized.")+
+  theme_minimal()
+```
