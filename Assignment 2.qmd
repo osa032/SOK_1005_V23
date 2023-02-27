@@ -73,7 +73,7 @@ df %>%
 lm(STOPP1 ~ WLTP1, data = df)
 ```
 
-As we can see the regression line at x = -26.6450, and increase by 0.8671
+As we can see the regression line for WLTP in respect to STOP. When STOP = 0 WLTP starts at x = -26.6450, and increases by a rate of 0.8671 WLTP to every 1 STOP
 
 ```{r}
 #create 2nd plot
